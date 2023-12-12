@@ -9,20 +9,15 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Startup, game::pong::spawn_paddels)
         .add_systems(Startup, game::pong::spawn_ball)
+        .add_systems(Startup, game::pong::spawn_scoreboard)
         .run();
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-
 }
 
-
-
-pub fn player_movment() {
-
-}
-  
+pub fn player_movment() {}
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum AppState {

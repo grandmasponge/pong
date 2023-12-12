@@ -3,13 +3,12 @@ use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 #[derive(Clone, Copy)]
 pub enum Side {
     left,
-    right
+    right,
 }
-
 
 #[derive(Component)]
 pub struct Ball {
-    speed: f32
+    speed: f32,
 }
 
 #[derive(Component)]
@@ -18,28 +17,23 @@ pub struct Collider;
 #[derive(Component, Clone)]
 pub struct Player {
     score: usize,
-    side: Side
+    side: Side,
 }
 
 #[derive(Resource)]
 pub struct ScoreBoard {
     score_left: usize,
-    score_right: usize
+    score_right: usize,
 }
-
 
 #[derive(Resource, Default)]
-pub struct GameState {
-   
-}
+pub struct GameState {}
 
 #[derive(Resource)]
 pub struct GameRules {
     max_rounds: usize,
     max_score: usize,
-
 }
-
 
 pub fn spawn_paddels(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     //paddel left
@@ -50,7 +44,7 @@ pub fn spawn_paddels(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
                 custom_size: Some(Vec2::new(10., 100.)),
                 ..default()
             },
-            transform : Transform {
+            transform: Transform {
                 translation: Vec3::new(-700., 0., 0.),
                 ..default()
             },
@@ -58,9 +52,9 @@ pub fn spawn_paddels(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
         },
         Player {
             score: 0,
-            side: Side::left
+            side: Side::left,
         },
-        Collider
+        Collider,
     ));
 
     // paddel right
@@ -71,7 +65,7 @@ pub fn spawn_paddels(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
                 custom_size: Some(Vec2::new(10., 100.)),
                 ..default()
             },
-            transform : Transform {
+            transform: Transform {
                 translation: Vec3::new(700., 0., 0.),
                 ..default()
             },
@@ -79,15 +73,17 @@ pub fn spawn_paddels(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
         },
         Player {
             score: 0,
-            side: Side::right
+            side: Side::right,
         },
-        Collider
+        Collider,
     ));
-
 }
 
-
-pub fn spawn_ball(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>,  mut materials: ResMut<Assets<ColorMaterial>>) {
+pub fn spawn_ball(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     commands.spawn((
         MaterialMesh2dBundle {
             mesh: meshes.add(shape::Circle::new(10.).into()).into(),
@@ -95,31 +91,31 @@ pub fn spawn_ball(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>,  mut
             transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
             ..default()
         },
-        Ball {
-            speed: 0.
-        },
+        Ball { speed: 0. },
         Collider,
     ));
 }
 
+pub fn spawn_scoreboard(mut commands: Commands) {
+    commands.spawn(Text2dBundle {
+        text: Text::from_section(
+            "Score: 0 | 0",
+            TextStyle {
+                font: default(),
+                font_size: 30.,
+                color: Color::WHITE,
+            },
+        ),
+        transform: Transform::from_translation(Vec3::new(0., 490., 0.)),
+        ..default()
+    },
+ );
+}
 
-pub fn start_recources() {
+pub fn spawn_recources(mut commands: Commands) {
 
 }
 
+pub fn game_over(rules: Res<GameRules>, state: Res<GameState>) {}
 
-
-pub fn game_over(rules: Res<GameRules>, state: Res<GameState>) {
- 
-}
-
-
-
-
-
-pub fn player_movment() {
-
-}
-
-
-  
+pub fn player_movment() {}
