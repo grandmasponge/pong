@@ -10,7 +10,7 @@ pub enum Side {
 #[derive(Component)]
 pub struct Ball {
     speed: f32
-};
+}
 
 #[derive(Component)]
 pub struct Collider;
@@ -41,7 +41,7 @@ pub struct GameRules {
 }
 
 
-pub fn spawn_paddels(mut commands: Commands, mut meshes: Res<Assets<Mesh>>) {
+pub fn spawn_paddels(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     //paddel left
     commands.spawn((
         SpriteBundle {
@@ -51,7 +51,7 @@ pub fn spawn_paddels(mut commands: Commands, mut meshes: Res<Assets<Mesh>>) {
                 ..default()
             },
             transform : Transform {
-                translation: Vec3::new(0., 0., 0.),
+                translation: Vec3::new(-700., 0., 0.),
                 ..default()
             },
             ..default()
@@ -72,7 +72,7 @@ pub fn spawn_paddels(mut commands: Commands, mut meshes: Res<Assets<Mesh>>) {
                 ..default()
             },
             transform : Transform {
-                translation: Vec3::new(100., 0., 0.),
+                translation: Vec3::new(700., 0., 0.),
                 ..default()
             },
             ..default()
@@ -87,10 +87,10 @@ pub fn spawn_paddels(mut commands: Commands, mut meshes: Res<Assets<Mesh>>) {
 }
 
 
-pub fn spawn_ball(mut commands: Commands, mut meshes: Res<Assets<Mesh>>,  mut materials: ResMut<Assets<ColorMaterial>>) {
+pub fn spawn_ball(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>,  mut materials: ResMut<Assets<ColorMaterial>>) {
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(50.).into()).into(),
+            mesh: meshes.add(shape::Circle::new(10.).into()).into(),
             material: materials.add(ColorMaterial::from(Color::WHITE)),
             transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
             ..default()
