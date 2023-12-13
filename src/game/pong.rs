@@ -1,9 +1,9 @@
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Side {
-    left,
-    right,
+    Left,
+    Right,
 }
 
 #[derive(Component)]
@@ -27,7 +27,10 @@ pub struct ScoreBoard {
 }
 
 #[derive(Resource, Default)]
-pub struct GameState {}
+pub struct GameState {
+    current_round: usize,
+    current_winning_player: Option<Side>,
+}
 
 #[derive(Resource)]
 pub struct GameRules {
@@ -35,7 +38,7 @@ pub struct GameRules {
     max_score: usize,
 }
 
-pub fn spawn_paddels(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+pub fn spawn_paddels(mut commands: Commands) {
     //paddel left
     commands.spawn((
         SpriteBundle {
@@ -52,7 +55,7 @@ pub fn spawn_paddels(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
         },
         Player {
             score: 0,
-            side: Side::left,
+            side: Side::Left,
         },
         Collider,
     ));
@@ -73,12 +76,12 @@ pub fn spawn_paddels(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
         },
         Player {
             score: 0,
-            side: Side::right,
+            side: Side::Right,
         },
         Collider,
     ));
 }
-
+//spawn ball
 pub fn spawn_ball(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -95,7 +98,7 @@ pub fn spawn_ball(
         Collider,
     ));
 }
-
+//spawn scoreboard
 pub fn spawn_scoreboard(mut commands: Commands) {
     commands.spawn(Text2dBundle {
         text: Text::from_section(
@@ -108,14 +111,49 @@ pub fn spawn_scoreboard(mut commands: Commands) {
         ),
         transform: Transform::from_translation(Vec3::new(0., 490., 0.)),
         ..default()
-    },
- );
+    });
 }
 
 pub fn spawn_recources(mut commands: Commands) {
-
+    //init all recources
+    commands.insert_resource(ScoreBoard {
+        score_left: 0,
+        score_right: 0,
+    });
+    commands.insert_resource(GameRules {
+        max_rounds: 3,
+        max_score: 5,
+    });
+    commands.insert_resource(GameState {
+        current_round: 0,
+        current_winning_player: None,
+    });
 }
 
-pub fn game_over(rules: Res<GameRules>, state: Res<GameState>) {}
-
-pub fn player_movment() {}
+pub fn player_movment(
+    mut query: Query<(&mut Transform, &Player)>,
+    key_input: Res<Input<KeyCode>>,
+    time: Res<Time>,
+) {
+    let time_delta = time.delta_seconds();
+    for (mut tranform, player) in query.iter_mut() {
+        let mut direction_y: f32 = 0.;
+        if player.side == Side::Left {
+            if key_input.pressed(KeyCode::A) {
+                direction_y += 200.;
+            }
+            if key_input.pressed(KeyCode::D) {
+                direction_y -= 200.;
+            }
+        } else {
+            if key_input.pressed(KeyCode::Up) {
+                direction_y += 200.;
+            }
+            if key_input.pressed(KeyCode::Down) {
+                direction_y -= 200.;
+            }
+        }
+        let new_translation = tranform.translation.y + direction_y * time_delta;
+        tranform.translation.y = new_translation.clamp(-540., 540.);
+    }
+}

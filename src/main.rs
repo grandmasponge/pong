@@ -10,6 +10,8 @@ fn main() {
         .add_systems(Startup, game::pong::spawn_paddels)
         .add_systems(Startup, game::pong::spawn_ball)
         .add_systems(Startup, game::pong::spawn_scoreboard)
+        .add_systems(Startup, game::pong::spawn_recources)
+        .add_systems(Update, game::pong::player_movment)
         .run();
 }
 
