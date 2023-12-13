@@ -182,6 +182,27 @@ pub fn ballmovment(mut query: Query<(&mut Transform, &mut Velocity, &Ball)>, tim
     for (mut transform, velocity, ball) in &mut query {
         transform.translation.x += velocity.0.x * time.delta_seconds() * &ball.speed;
         transform.translation.y += velocity.0.y* time.delta_seconds() * &ball.speed;
+        let _ = transform.translation.y.clamp(-540., 540.);
     }
     
-}   
+}  
+
+pub fn check_for_goal(query: Query<&Transform, With<Ball>>, mut score_board: ResMut<ScoreBoard>) {
+    let ball = query.single();
+    if ball.translation.x == -960. {
+        println!("right scored");
+        score_board.score_right += 1;
+    }
+    if ball.translation.x == 960. {
+        println!("left scored");
+        score_board.score_left += 1;
+    }
+
+}
+
+pub fn update_scoreboard() {
+    
+}
+
+
+
