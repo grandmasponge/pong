@@ -1,11 +1,17 @@
-
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::{CursorGrabMode, PresentMode, WindowLevel, WindowTheme}};
+use bevy::{
+    prelude::*,
+    sprite::MaterialMesh2dBundle,
+    window::{CursorGrabMode, PresentMode, WindowLevel, WindowTheme},
+};
+use rand::Rng;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Side {
     Left,
     Right,
 }
+#[derive(Component, Debug)]
+pub struct Velocity(Vec2);
 
 #[derive(Component)]
 pub struct Ball {
@@ -88,6 +94,16 @@ pub fn spawn_ball(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
+    let mut rng = rand::thread_rng();
+    let num = rng.gen_range(0..100);
+    let direction: f32;
+
+    if num > 50 {
+        direction = 3000.;
+    } else {
+        direction = -3000.;
+    }
+
     commands.spawn((
         MaterialMesh2dBundle {
             mesh: meshes.add(shape::Circle::new(10.).into()).into(),
@@ -95,7 +111,8 @@ pub fn spawn_ball(
             transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
             ..default()
         },
-        Ball { speed: 0. },
+        Ball { speed: 400. },
+        Velocity(Vec2::new(direction, 0.).normalize()),
         Collider,
     ));
 }
@@ -135,7 +152,6 @@ pub fn player_movment(
     mut query: Query<(&mut Transform, &Player)>,
     key_input: Res<Input<KeyCode>>,
     time: Res<Time>,
-    
 ) {
     let time_delta = time.delta_seconds();
     for (mut tranform, player) in query.iter_mut() {
@@ -159,3 +175,13 @@ pub fn player_movment(
         tranform.translation.y = new_translation.clamp(-540., 540.);
     }
 }
+
+pub fn ballmovment(mut query: Query<(&mut Transform, &mut Velocity, &Ball)>, time: Res<Time>) {
+ //move ball
+    
+    for (mut transform, velocity, ball) in &mut query {
+        transform.translation.x += velocity.0.x * time.delta_seconds() * &ball.speed;
+        transform.translation.y += velocity.0.y* time.delta_seconds() * &ball.speed;
+    }
+    
+}   

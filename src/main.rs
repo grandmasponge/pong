@@ -13,9 +13,8 @@ fn main() {
                 window_theme: Some(bevy::window::WindowTheme::Dark),
                 visible: true,
                 ..default()
-            },
-        ),
-        ..default()
+            }),
+            ..default()
         }))
         .add_state::<AppState>()
         .add_systems(Startup, setup)
@@ -24,6 +23,7 @@ fn main() {
         .add_systems(Startup, game::pong::spawn_scoreboard)
         .add_systems(Startup, game::pong::spawn_recources)
         .add_systems(Update, game::pong::player_movment)
+        .add_systems(Update, game::pong::ballmovment)
         .run();
 }
 
