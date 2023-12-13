@@ -1,4 +1,5 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
+
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::{CursorGrabMode, PresentMode, WindowLevel, WindowTheme}};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Side {
@@ -105,11 +106,11 @@ pub fn spawn_scoreboard(mut commands: Commands) {
             "Score: 0 | 0",
             TextStyle {
                 font: default(),
-                font_size: 30.,
+                font_size: 60.,
                 color: Color::WHITE,
             },
         ),
-        transform: Transform::from_translation(Vec3::new(0., 490., 0.)),
+        transform: Transform::from_translation(Vec3::new(0., 450., 0.)),
         ..default()
     });
 }
@@ -134,6 +135,7 @@ pub fn player_movment(
     mut query: Query<(&mut Transform, &Player)>,
     key_input: Res<Input<KeyCode>>,
     time: Res<Time>,
+    
 ) {
     let time_delta = time.delta_seconds();
     for (mut tranform, player) in query.iter_mut() {

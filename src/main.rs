@@ -4,7 +4,19 @@ use bevy::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "pong2".into(),
+                resolution: (1920., 1080.).into(),
+                present_mode: bevy::window::PresentMode::AutoVsync,
+                fit_canvas_to_parent: true,
+                window_theme: Some(bevy::window::WindowTheme::Dark),
+                visible: true,
+                ..default()
+            },
+        ),
+        ..default()
+        }))
         .add_state::<AppState>()
         .add_systems(Startup, setup)
         .add_systems(Startup, game::pong::spawn_paddels)
