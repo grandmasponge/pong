@@ -7,6 +7,7 @@ use bevy::{
     },
     window::{CursorGrabMode, PresentMode, WindowLevel, WindowTheme},
 };
+use std::{thread, time};
 use rand::Rng;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -125,27 +126,37 @@ pub fn spawn_ball(
             ..default()
         },
         Ball {
-            speed: 400.,
+            speed: 300.,
             raduis: 10.,
         },
-        Velocity(Vec2::new(direction, 500.).normalize()),
+        Velocity(Vec2::new(direction, 300.).normalize()),
         Collider,
     ));
 }
 //spawn scoreboard
 pub fn spawn_scoreboard(mut commands: Commands) {
-    commands.spawn(Text2dBundle {
-        text: Text::from_section(
-            "Score: 0 | 0",
-            TextStyle {
+   let score=  commands.spawn(
+        TextBundle::from_sections([
+            TextSection::new(
+                "Score:",
+                 TextStyle {
+                    font: default(),
+                    color: Color::ANTIQUE_WHITE,
+                    font_size: 60.
+                 },
+            ),
+            TextSection::from_style(TextStyle {
                 font: default(),
-                font_size: 60.,
-                color: Color::WHITE,
-            },
-        ),
-        transform: Transform::from_translation(Vec3::new(0., 450., 0.)),
-        ..default()
-    });
+                color: Color::ANTIQUE_WHITE,
+                font_size: 60.
+            }),
+        ]).with_style(Style {
+            position_type: PositionType::Absolute,
+            justify_self: JustifySelf::Center,
+            align_self: AlignSelf::Start,
+            ..default()
+        })
+    );
 }
 
 pub fn spawn_recources(mut commands: Commands) {
@@ -204,16 +215,13 @@ pub fn ballmovment(mut query: Query<(&mut Transform, &mut Velocity, &Ball)>, tim
 
 pub fn update_ball_direction(mut query: Query<(&Transform, &mut Ball, &mut Velocity)>) {
     let (mut ball_transform, mut ball, mut ball_velocity) = query.single_mut();
-    let half_ball_size = ball.raduis /2.;
-    let x_min = -SCREEN_WIDTH/2. + half_ball_size;
-    let y_min = -SCREEN_HEIGHT/2. + half_ball_size;
-    let x_max = SCREEN_WIDTH/2. - half_ball_size;
-    let y_max =  SCREEN_HEIGHT/2. - half_ball_size;
+    let half_ball_size = ball.raduis / 2.;
+    let x_min = -SCREEN_WIDTH / 2. + half_ball_size;
+    let y_min = -SCREEN_HEIGHT / 2. + half_ball_size;
+    let x_max = SCREEN_WIDTH / 2. - half_ball_size;
+    let y_max = SCREEN_HEIGHT / 2. - half_ball_size;
 
     let trans = ball_transform.translation;
-    if trans.x < x_min || trans.x > x_max {
-        ball_velocity.0.x *= -1.0;
-    }
     if trans.y < y_min || trans.y > y_max {
         ball_velocity.0.y *= -1.0;
     }
@@ -235,20 +243,48 @@ pub fn collision_detection(
         );
         if let Some(collision) = collision {
             println!("collision: {:?}", collision);
-            let new_velocity = ball_velocity.0 * -1.;
+            let mut new_velocity = ball_velocity.0;
+            match collision {
+                Collision::Top => {
+                    new_velocity.y *= -1.0;
+                }
+                Collision::Bottom => {
+                    new_velocity.y *= -1.0;
+                }
+                Collision::Left => {
+                    new_velocity.x *= -1.0;
+                }
+                Collision::Right => {
+                    new_velocity.x *= -1.0;
+                }
+                _ => new_velocity *= -1.0,
+            }
+
             ball_velocity.0 = new_velocity;
         }
     }
 }
 
-pub fn check_for_goal(query: Query<&Transform, With<Ball>>, mut score_board: ResMut<ScoreBoard>) {
-    let ball = query.single();
-    if ball.translation.x == -960. {
-        println!("right scored");
+pub fn check_for_goal(mut query: Query<(&mut Transform, &Ball)>, mut score_board: ResMut<ScoreBoard>) {
+    let (mut ball_transform, ball) = query.single_mut();
+    let half_ball_size = ball.raduis / 2.;
+    let x_min = -SCREEN_WIDTH / 2. + half_ball_size;
+    let x_max = SCREEN_WIDTH / 2. - half_ball_size;
+    let trans = ball_transform.translation;
+    if x_min > trans.x {
         score_board.score_right += 1;
+        ball_transform.translation = Vec3::new(0.,0.,0.);
+        thread::sleep(time::Duration::from_secs(5));
+
     }
-    if ball.translation.x == 960. {
-        println!("left scored");
+    if x_max < trans.x {
         score_board.score_left += 1;
+        ball_transform.translation = Vec3::new(0.,0.,0.);
+        thread::sleep(time::Duration::from_secs(5));
     }
+}
+
+pub fn update_scoreboard(mut query: Query<&mut Text>, score_board: Res<ScoreBoard>) {
+    let mut text = query.single_mut();
+    text.sections[1].value = format!("{} : {}", score_board.score_left, score_board.score_right);
 }
