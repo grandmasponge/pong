@@ -1,6 +1,6 @@
 mod game;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowMode};
 
 fn main() {
     App::new()
@@ -12,6 +12,8 @@ fn main() {
                 fit_canvas_to_parent: true,
                 window_theme: Some(bevy::window::WindowTheme::Dark),
                 visible: true,
+                resizable: false,
+                mode: WindowMode::Fullscreen,
                 ..default()
             }),
             ..default()
