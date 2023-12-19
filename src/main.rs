@@ -24,6 +24,8 @@ fn main() {
         .add_systems(Startup, game::pong::spawn_recources)
         .add_systems(Update, game::pong::player_movment)
         .add_systems(Update, game::pong::ballmovment)
+        .add_systems(Update, game::pong::update_ball_direction)
+        .add_systems(Update, game::pong::collision_detection)
         .add_systems(Update, bevy::window::close_on_esc)
         .run();
 }

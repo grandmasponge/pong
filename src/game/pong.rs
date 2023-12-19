@@ -1,6 +1,10 @@
 use bevy::{
+    ecs::query,
     prelude::*,
-    sprite::MaterialMesh2dBundle,
+    sprite::{
+        collide_aabb::{collide, Collision},
+        MaterialMesh2dBundle,
+    },
     window::{CursorGrabMode, PresentMode, WindowLevel, WindowTheme},
 };
 use rand::Rng;
@@ -16,6 +20,7 @@ pub struct Velocity(Vec2);
 #[derive(Component)]
 pub struct Ball {
     speed: f32,
+    raduis: f32,
 }
 
 #[derive(Component)]
@@ -44,6 +49,14 @@ pub struct GameRules {
     max_rounds: usize,
     max_score: usize,
 }
+
+//screen heights
+const SCREEN_WIDTH: f32 = 1920.;
+const SCREEN_HEIGHT: f32 = 1080.;
+
+//paddel dimensions
+const PADDEL_WIDTH: f32 = 10.;
+const PADDLE_HEIGHT: f32 = 100.;
 
 pub fn spawn_paddels(mut commands: Commands) {
     //paddel left
@@ -99,9 +112,9 @@ pub fn spawn_ball(
     let direction: f32;
 
     if num > 50 {
-        direction = 3000.;
+        direction = 300.;
     } else {
-        direction = -3000.;
+        direction = -300.;
     }
 
     commands.spawn((
@@ -111,8 +124,11 @@ pub fn spawn_ball(
             transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
             ..default()
         },
-        Ball { speed: 400. },
-        Velocity(Vec2::new(direction, 0.).normalize()),
+        Ball {
+            speed: 400.,
+            raduis: 10.,
+        },
+        Velocity(Vec2::new(direction, 500.).normalize()),
         Collider,
     ));
 }
@@ -172,20 +188,58 @@ pub fn player_movment(
             }
         }
         let new_translation = tranform.translation.y + direction_y * time_delta;
-        tranform.translation.y = new_translation.clamp(-540., 540.);
+        let clamp = SCREEN_HEIGHT / 2. - PADDEL_WIDTH / 2.;
+        tranform.translation.y = new_translation.clamp(-clamp, clamp);
     }
 }
 
 pub fn ballmovment(mut query: Query<(&mut Transform, &mut Velocity, &Ball)>, time: Res<Time>) {
- //move ball
-    
+    //move ball
+
     for (mut transform, velocity, ball) in &mut query {
         transform.translation.x += velocity.0.x * time.delta_seconds() * &ball.speed;
-        transform.translation.y += velocity.0.y* time.delta_seconds() * &ball.speed;
-        let _ = transform.translation.y.clamp(-540., 540.);
+        transform.translation.y += velocity.0.y * time.delta_seconds() * &ball.speed;
     }
-    
-}  
+}
+
+pub fn update_ball_direction(mut query: Query<(&Transform, &mut Ball, &mut Velocity)>) {
+    let (mut ball_transform, mut ball, mut ball_velocity) = query.single_mut();
+    let half_ball_size = ball.raduis /2.;
+    let x_min = -SCREEN_WIDTH/2. + half_ball_size;
+    let y_min = -SCREEN_HEIGHT/2. + half_ball_size;
+    let x_max = SCREEN_WIDTH/2. - half_ball_size;
+    let y_max =  SCREEN_HEIGHT/2. - half_ball_size;
+
+    let trans = ball_transform.translation;
+    if trans.x < x_min || trans.x > x_max {
+        ball_velocity.0.x *= -1.0;
+    }
+    if trans.y < y_min || trans.y > y_max {
+        ball_velocity.0.y *= -1.0;
+    }
+}
+
+pub fn collision_detection(
+    mut ball_query: Query<(&Ball, &mut Velocity, &Transform)>,
+    paddel_query: Query<(&Player, &Transform)>,
+) {
+    let (_ball, mut ball_velocity, ball_transform) = ball_query.single_mut();
+    let ball_size = ball_transform.scale.truncate();
+
+    for (_player, player_tranform) in &paddel_query {
+        let collision = collide(
+            ball_transform.translation,
+            ball_size,
+            player_tranform.translation,
+            player_tranform.scale.truncate(),
+        );
+        if let Some(collision) = collision {
+            println!("collision: {:?}", collision);
+            let new_velocity = ball_velocity.0 * -1.;
+            ball_velocity.0 = new_velocity;
+        }
+    }
+}
 
 pub fn check_for_goal(query: Query<&Transform, With<Ball>>, mut score_board: ResMut<ScoreBoard>) {
     let ball = query.single();
@@ -197,12 +251,4 @@ pub fn check_for_goal(query: Query<&Transform, With<Ball>>, mut score_board: Res
         println!("left scored");
         score_board.score_left += 1;
     }
-
 }
-
-pub fn update_scoreboard() {
-    
-}
-
-
-
