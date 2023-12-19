@@ -228,10 +228,10 @@ pub fn update_ball_direction(mut query: Query<(&Transform, &mut Ball, &mut Veloc
 }
 
 pub fn collision_detection(
-    mut ball_query: Query<(&Ball, &mut Velocity, &Transform)>,
+    mut ball_query: Query<(&mut Ball, &mut Velocity, &Transform)>,
     paddel_query: Query<(&Player, &Transform)>,
 ) {
-    let (_ball, mut ball_velocity, ball_transform) = ball_query.single_mut();
+    let (mut ball, mut ball_velocity, ball_transform) = ball_query.single_mut();
     let ball_size = Vec2::new(10., 10.);
 
     for (_player, player_tranform) in &paddel_query {
@@ -242,19 +242,22 @@ pub fn collision_detection(
             Vec2::new(PADDEL_WIDTH, PADDLE_HEIGHT),
         );
         if let Some(collision) = collision {
-            println!("collision: {:?}", collision);
             let mut new_velocity = ball_velocity.0;
             match collision {
                 Collision::Top => {
+                    ball.speed += 100.0;
                     new_velocity.y *= -1.0;
                 }
                 Collision::Bottom => {
+                    ball.speed += 100.0;
                     new_velocity.y *= -1.0;
                 }
                 Collision::Left => {
+                    ball.speed += 100.0;
                     new_velocity.x *= -1.0;
                 }
                 Collision::Right => {
+                    ball.speed += 100.0;
                     new_velocity.x *= -1.0;
                 }
                 _ => new_velocity *= -1.0,
@@ -265,8 +268,8 @@ pub fn collision_detection(
     }
 }
 
-pub fn check_for_goal(mut query: Query<(&mut Transform, &Ball)>, mut score_board: ResMut<ScoreBoard>) {
-    let (mut ball_transform, ball) = query.single_mut();
+pub fn check_for_goal(mut query: Query<(&mut Transform, &mut Ball)>, mut score_board: ResMut<ScoreBoard>) {
+    let (mut ball_transform, mut ball) = query.single_mut();
     let half_ball_size = ball.raduis / 2.;
     let x_min = -SCREEN_WIDTH / 2. + half_ball_size;
     let x_max = SCREEN_WIDTH / 2. - half_ball_size;
@@ -274,12 +277,14 @@ pub fn check_for_goal(mut query: Query<(&mut Transform, &Ball)>, mut score_board
     if x_min > trans.x {
         score_board.score_right += 1;
         ball_transform.translation = Vec3::new(0.,0.,0.);
+        ball.speed = 300.;
         thread::sleep(time::Duration::from_secs(5));
 
     }
     if x_max < trans.x {
         score_board.score_left += 1;
         ball_transform.translation = Vec3::new(0.,0.,0.);
+        ball.speed = 300.;
         thread::sleep(time::Duration::from_secs(5));
     }
 }
