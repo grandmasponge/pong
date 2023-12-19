@@ -174,17 +174,17 @@ pub fn player_movment(
         let mut direction_y: f32 = 0.;
         if player.side == Side::Left {
             if key_input.pressed(KeyCode::A) {
-                direction_y += 200.;
+                direction_y += 500.;
             }
             if key_input.pressed(KeyCode::D) {
-                direction_y -= 200.;
+                direction_y -= 500.;
             }
         } else {
             if key_input.pressed(KeyCode::Up) {
-                direction_y += 200.;
+                direction_y += 500.;
             }
             if key_input.pressed(KeyCode::Down) {
-                direction_y -= 200.;
+                direction_y -= 500.;
             }
         }
         let new_translation = tranform.translation.y + direction_y * time_delta;
@@ -224,14 +224,14 @@ pub fn collision_detection(
     paddel_query: Query<(&Player, &Transform)>,
 ) {
     let (_ball, mut ball_velocity, ball_transform) = ball_query.single_mut();
-    let ball_size = ball_transform.scale.truncate();
+    let ball_size = Vec2::new(10., 10.);
 
     for (_player, player_tranform) in &paddel_query {
         let collision = collide(
             ball_transform.translation,
             ball_size,
             player_tranform.translation,
-            player_tranform.scale.truncate(),
+            Vec2::new(PADDEL_WIDTH, PADDLE_HEIGHT),
         );
         if let Some(collision) = collision {
             println!("collision: {:?}", collision);
