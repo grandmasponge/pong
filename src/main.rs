@@ -46,7 +46,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     commands.spawn(AudioBundle {
-        source: asset_server.load("music/main_music.wav"),
+        source: asset_server.load("main_music.mp3"),
         settings: PlaybackSettings::LOOP,
     });
 

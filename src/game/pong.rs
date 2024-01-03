@@ -264,7 +264,7 @@ pub fn collision_detection(
             ball_transform.translation,
             ball_size,
             player_tranform.translation,
-            Vec2::new(PADDEL_WIDTH, PADDLE_HEIGHT),
+            Vec2::new(PADDEL_WIDTH + 20., PADDLE_HEIGHT + 20.),
         );
         if let Some(collision) = collision {
             let mut new_velocity = ball_velocity.0;
