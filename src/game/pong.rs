@@ -7,8 +7,10 @@ use bevy::{
     },
     window::{CursorGrabMode, PresentMode, WindowLevel, WindowTheme},
 };
-use std::{thread, time};
+
 use rand::Rng;
+use std::{thread, time};
+
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Side {
@@ -17,6 +19,17 @@ pub enum Side {
 }
 #[derive(Component, Debug)]
 pub struct Velocity(Vec2);
+
+#[derive(Component, Debug)]
+pub struct PowerUpTimer {
+    timer: Timer,
+}
+
+#[derive(Component)]
+pub struct PowerUp {
+    powerup_type: PowerUpType,
+}
+
 
 #[derive(Component)]
 pub struct Ball {
@@ -51,6 +64,11 @@ pub struct GameRules {
     max_score: usize,
 }
 
+enum PowerUpType {
+    Speedup,
+    Slowdown,
+}
+
 //screen heights
 const SCREEN_WIDTH: f32 = 1920.;
 const SCREEN_HEIGHT: f32 = 1080.;
@@ -58,6 +76,12 @@ const SCREEN_HEIGHT: f32 = 1080.;
 //paddel dimensions
 const PADDEL_WIDTH: f32 = 10.;
 const PADDLE_HEIGHT: f32 = 100.;
+
+pub fn spawn_game_items(mut commands: Commands, assets: Res<AssetServer>) {
+    commands.spawn(PowerUpTimer {
+        timer: Timer::new(time::Duration::from_secs(20), TimerMode::Repeating),
+    });
+}    
 
 pub fn spawn_paddels(mut commands: Commands) {
     //paddel left
@@ -135,27 +159,28 @@ pub fn spawn_ball(
 }
 //spawn scoreboard
 pub fn spawn_scoreboard(mut commands: Commands) {
-   let score=  commands.spawn(
+    let score = commands.spawn(
         TextBundle::from_sections([
             TextSection::new(
                 "Score:",
-                 TextStyle {
+                TextStyle {
                     font: default(),
                     color: Color::ANTIQUE_WHITE,
-                    font_size: 60.
-                 },
+                    font_size: 60.,
+                },
             ),
             TextSection::from_style(TextStyle {
                 font: default(),
                 color: Color::ANTIQUE_WHITE,
-                font_size: 60.
+                font_size: 60.,
             }),
-        ]).with_style(Style {
+        ])
+        .with_style(Style {
             position_type: PositionType::Absolute,
             justify_self: JustifySelf::Center,
             align_self: AlignSelf::Start,
             ..default()
-        })
+        }),
     );
 }
 
@@ -268,7 +293,10 @@ pub fn collision_detection(
     }
 }
 
-pub fn check_for_goal(mut query: Query<(&mut Transform, &mut Ball)>, mut score_board: ResMut<ScoreBoard>) {
+pub fn check_for_goal(
+    mut query: Query<(&mut Transform, &mut Ball)>,
+    mut score_board: ResMut<ScoreBoard>,
+) {
     let (mut ball_transform, mut ball) = query.single_mut();
     let half_ball_size = ball.raduis / 2.;
     let x_min = -SCREEN_WIDTH / 2. + half_ball_size;
@@ -276,16 +304,15 @@ pub fn check_for_goal(mut query: Query<(&mut Transform, &mut Ball)>, mut score_b
     let trans = ball_transform.translation;
     if x_min > trans.x {
         score_board.score_right += 1;
-        ball_transform.translation = Vec3::new(0.,0.,0.);
+        ball_transform.translation = Vec3::new(0., 0., 0.);
         ball.speed = 300.;
-        thread::sleep(time::Duration::from_secs(5));
-
+        thread::sleep(time::Duration::from_secs(2));
     }
     if x_max < trans.x {
         score_board.score_left += 1;
-        ball_transform.translation = Vec3::new(0.,0.,0.);
+        ball_transform.translation = Vec3::new(0., 0., 0.);
         ball.speed = 300.;
-        thread::sleep(time::Duration::from_secs(5));
+        thread::sleep(time::Duration::from_secs(2));
     }
 }
 
@@ -293,3 +320,118 @@ pub fn update_scoreboard(mut query: Query<&mut Text>, score_board: Res<ScoreBoar
     let mut text = query.single_mut();
     text.sections[1].value = format!("{} : {}", score_board.score_left, score_board.score_right);
 }
+
+pub fn spawn_powerups(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut powerup_timer: Query<&mut PowerUpTimer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let mut rng = rand::thread_rng();
+    let mut timer = powerup_timer.single_mut();
+    timer.timer.tick(time.delta());
+    if timer.timer.just_finished() {
+        let num = rng.gen_range(0..1);
+        let poweruptype = match num {
+            0 => PowerUpType::Speedup,
+            1 => PowerUpType::Slowdown,
+            _ => PowerUpType::Speedup,
+        };
+        let x = rng.gen_range(-500..500) as f32;
+        let y = rng.gen_range(-500..500) as f32;
+
+        let powerupcolor = match poweruptype {
+            PowerUpType::Speedup => Color::RED,
+            PowerUpType::Slowdown => Color::BLUE,
+        };
+
+        commands.spawn((
+            MaterialMesh2dBundle {
+                mesh: meshes.add(shape::Circle::new(50.).into()).into(),
+                material: materials.add(ColorMaterial::from(powerupcolor)),
+                transform: Transform::from_translation(Vec3::new(x, y, 0.)),
+                ..default()
+            },
+            PowerUp {
+                powerup_type: poweruptype,
+            },
+        ));
+    }
+}
+
+pub fn powerup_collisions(
+    mut commands: Commands,
+    mut ball_query: Query<(&mut Ball, &Transform)>,
+    mut powerUpQuery: Query<(Entity, &mut PowerUp, &Transform)>
+) {
+    let (mut ball, ball_transform) = ball_query.single_mut();
+    let ball_size = Vec2::new(10., 10.);
+    let powerupsize = Vec2::new(50., 50.);
+
+    for (entity, mut powerup, powerupTransform) in &powerUpQuery {
+        let collide = collide(
+            ball_transform.translation,
+            ball_size,
+            powerupTransform.translation,
+            powerupsize,
+        );
+        if let Some(collision) = collide {
+            let powerup = match powerup.powerup_type {
+                PowerUpType::Speedup => {
+                    ball.speed += 100.0;
+                    commands.entity(entity).despawn_recursive();
+                }
+                PowerUpType::Slowdown => {
+                    ball.speed -= 100.0;
+                    commands.entity(entity).despawn_recursive();
+                }
+            };
+        }
+    }
+
+}
+
+pub fn end_game_checker(score: Res<ScoreBoard>) -> bool {
+    if score.score_left == 5 || score.score_right == 5 {
+        true
+    } else {
+        false
+    }
+}
+
+pub fn end_game(mut commands: Commands, mut entity_query: Query<Entity>, score: Res<ScoreBoard>) {
+    let winner = if score.score_left == 5 {
+        "Left"
+    } else {
+        "Right"
+    };
+
+    for entity in &mut entity_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+
+    commands.spawn(TextBundle {
+        text: Text {
+            sections: vec![TextSection {
+                value: format!("{} player won!", winner),
+                style: TextStyle {
+                    font: default(),
+                    font_size: 100.,
+                    color: Color::WHITE,
+                },
+            }],
+            ..default()
+        },
+        style: Style {
+            position_type: PositionType::Absolute,
+            justify_self: JustifySelf::Center,
+            align_self: AlignSelf::Center,
+            ..default()
+        },
+        ..default()
+    });
+}
+
+
+//compositons of sounds and music created by Harry FFoulkes  https://www.youtube.com/@boggy9396
