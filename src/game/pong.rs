@@ -1,3 +1,4 @@
+use crate::AppState;
 use bevy::{
     ecs::query,
     prelude::*,
@@ -7,10 +8,8 @@ use bevy::{
     },
     window::{CursorGrabMode, PresentMode, WindowLevel, WindowTheme},
 };
-
 use rand::Rng;
 use std::{thread, time};
-
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Side {
@@ -29,7 +28,6 @@ pub struct PowerUpTimer {
 pub struct PowerUp {
     powerup_type: PowerUpType,
 }
-
 
 #[derive(Component)]
 pub struct Ball {
@@ -81,7 +79,7 @@ pub fn spawn_game_items(mut commands: Commands, assets: Res<AssetServer>) {
     commands.spawn(PowerUpTimer {
         timer: Timer::new(time::Duration::from_secs(20), TimerMode::Repeating),
     });
-}    
+}
 
 pub fn spawn_paddels(mut commands: Commands) {
     //paddel left
@@ -363,7 +361,7 @@ pub fn spawn_powerups(
 pub fn powerup_collisions(
     mut commands: Commands,
     mut ball_query: Query<(&mut Ball, &Transform)>,
-    mut powerUpQuery: Query<(Entity, &mut PowerUp, &Transform)>
+    mut powerUpQuery: Query<(Entity, &mut PowerUp, &Transform)>,
 ) {
     let (mut ball, ball_transform) = ball_query.single_mut();
     let ball_size = Vec2::new(10., 10.);
@@ -389,14 +387,11 @@ pub fn powerup_collisions(
             };
         }
     }
-
 }
 
-pub fn end_game_checker(score: Res<ScoreBoard>) -> bool {
+pub fn end_game_checker(score: Res<ScoreBoard>, mut next_state: ResMut<NextState<AppState>>) {
     if score.score_left == 5 || score.score_right == 5 {
-        true
-    } else {
-        false
+        next_state.set(AppState::GameOver);
     }
 }
 
@@ -406,10 +401,6 @@ pub fn end_game(mut commands: Commands, mut entity_query: Query<Entity>, score: 
     } else {
         "Right"
     };
-
-    for entity in &mut entity_query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
 
     commands.spawn(TextBundle {
         text: Text {
@@ -432,6 +423,5 @@ pub fn end_game(mut commands: Commands, mut entity_query: Query<Entity>, score: 
         ..default()
     });
 }
-
 
 //compositons of sounds and music created by Harry FFoulkes  https://www.youtube.com/@boggy9396
