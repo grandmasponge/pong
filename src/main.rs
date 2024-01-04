@@ -10,13 +10,12 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "pong2".into(),
-                resolution: (1920., 1080.).into(),
-                present_mode: bevy::window::PresentMode::AutoVsync,
+                resolution: (800., 600.).into(),
                 fit_canvas_to_parent: true,
                 window_theme: Some(bevy::window::WindowTheme::Dark),
                 visible: true,
-                resizable: false,
-                mode: WindowMode::Fullscreen,
+                resizable: true,
+                mode: WindowMode::Windowed,
                 ..default()
             }),
             ..default()
@@ -28,13 +27,12 @@ fn main() {
         .add_systems(Startup, game::pong::spawn_scoreboard)
         .add_systems(Startup, game::pong::spawn_recources)
         .add_systems(Startup, game::pong::spawn_game_items)
+        .add_systems(Update, (game::pong::collision_detection, game::pong::update_ball_direction,))
         .add_systems(
             Update,
             (
                 game::pong::player_movment,
                 game::pong::ballmovment,
-                game::pong::update_ball_direction,
-                game::pong::collision_detection,
                 game::pong::powerup_collisions,
                 game::pong::check_for_goal,
                 game::pong::update_scoreboard,

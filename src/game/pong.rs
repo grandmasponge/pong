@@ -68,8 +68,8 @@ enum PowerUpType {
 }
 
 //screen heights
-const SCREEN_WIDTH: f32 = 1920.;
-const SCREEN_HEIGHT: f32 = 1080.;
+const SCREEN_WIDTH: f32 = 800.;
+const SCREEN_HEIGHT: f32 = 600.;
 
 //paddel dimensions
 const PADDEL_WIDTH: f32 = 10.;
@@ -91,7 +91,7 @@ pub fn spawn_paddels(mut commands: Commands) {
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(-700., 0., 0.),
+                translation: Vec3::new(-370., 0., 0.),
                 ..default()
             },
             ..default()
@@ -112,7 +112,7 @@ pub fn spawn_paddels(mut commands: Commands) {
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(700., 0., 0.),
+                translation: Vec3::new(370., 0., 0.),
                 ..default()
             },
             ..default()
@@ -223,7 +223,7 @@ pub fn player_movment(
         }
         let new_translation = tranform.translation.y + direction_y * time_delta;
         let clamp = SCREEN_HEIGHT / 2. - PADDEL_WIDTH / 2.;
-        tranform.translation.y = new_translation.clamp(-clamp, clamp);
+        tranform.translation.y = new_translation.clamp(-clamp - 30., clamp - 30.);
     }
 }
 
@@ -236,7 +236,7 @@ pub fn ballmovment(mut query: Query<(&mut Transform, &mut Velocity, &Ball)>, tim
     }
 }
 
-pub fn update_ball_direction(mut query: Query<(&Transform, &mut Ball, &mut Velocity)>) {
+pub fn update_ball_direction(mut query: Query<(&mut Transform, &mut Ball, &mut Velocity)>) {
     let (mut ball_transform, mut ball, mut ball_velocity) = query.single_mut();
     let half_ball_size = ball.raduis / 2.;
     let x_min = -SCREEN_WIDTH / 2. + half_ball_size;
@@ -247,49 +247,51 @@ pub fn update_ball_direction(mut query: Query<(&Transform, &mut Ball, &mut Veloc
     let trans = ball_transform.translation;
     if trans.y < y_min || trans.y > y_max {
         ball_velocity.0.y *= -1.0;
+        let mut new_transform = ball_transform.translation;
+        ball_transform.translation.y = new_transform.y.clamp(y_min, y_max);
     }
 }
 
 pub fn collision_detection(
     mut ball_query: Query<(&mut Ball, &mut Velocity, &Transform)>,
     paddel_query: Query<(&Player, &Transform)>,
+    time: Res<Time>,
 ) {
+    let delta = time.delta_seconds();
     let (mut ball, mut ball_velocity, ball_transform) = ball_query.single_mut();
-    let ball_size = Vec2::new(10., 10.);
+    let ball_size = Vec2::new(10. + 5., 10. + 5.);
 
     for (_player, player_tranform) in &paddel_query {
         let collision = collide(
             ball_transform.translation,
             ball_size,
             player_tranform.translation,
-            Vec2::new(PADDEL_WIDTH + 20., PADDLE_HEIGHT + 20.),
+            Vec2::new(PADDEL_WIDTH , PADDLE_HEIGHT),
         );
-        if let Some(collision) = collision {
-            let mut new_velocity = ball_velocity.0;
-            match collision {
-                Collision::Top => {
-                    ball.speed += 100.0;
-                    new_velocity.y *= -1.0;
-                }
-                Collision::Bottom => {
-                    ball.speed += 100.0;
-                    new_velocity.y *= -1.0;
-                }
-                Collision::Left => {
-                    ball.speed += 100.0;
-                    new_velocity.x *= -1.0;
-                }
-                Collision::Right => {
-                    ball.speed += 100.0;
-                    new_velocity.x *= -1.0;
-                }
-                _ => new_velocity *= -1.0,
-            }
+        let collision = match collision {
+            Some(collision) => collision,
+            None => continue,
+        };
 
-            ball_velocity.0 = new_velocity;
+        use Collision::*;
+        
+        let (reflect_x, reflect_y) = match collision {
+            Left => (ball_velocity.0.x > 0.0, false),
+            Right => (ball_velocity.0.x  < 0.0, false),
+            Top => (false, ball_velocity.0.y < 0.0),
+            Bottom => (false, ball_velocity.0.y > 0.0),
+            Inside => (false, false),
+        };
+
+        if reflect_x {
+            ball_velocity.0.x = -ball_velocity.0.x;
         }
-    }
-}
+
+        if reflect_y {
+            ball_velocity.0.y = -ball_velocity.0.y;
+        }
+        }
+ }
 
 pub fn check_for_goal(
     mut query: Query<(&mut Transform, &mut Ball)>,
@@ -336,8 +338,8 @@ pub fn spawn_powerups(
             1 => PowerUpType::Slowdown,
             _ => PowerUpType::Speedup,
         };
-        let x = rng.gen_range(-500..500) as f32;
-        let y = rng.gen_range(-500..500) as f32;
+        let x = rng.gen_range(-300..300) as f32;
+        let y = rng.gen_range(-300..300) as f32;
 
         let powerupcolor = match poweruptype {
             PowerUpType::Speedup => Color::RED,
@@ -346,7 +348,7 @@ pub fn spawn_powerups(
 
         commands.spawn((
             MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Circle::new(50.).into()).into(),
+                mesh: meshes.add(shape::Circle::new(20.).into()).into(),
                 material: materials.add(ColorMaterial::from(powerupcolor)),
                 transform: Transform::from_translation(Vec3::new(x, y, 0.)),
                 ..default()
@@ -364,7 +366,7 @@ pub fn powerup_collisions(
     mut powerUpQuery: Query<(Entity, &mut PowerUp, &Transform)>,
 ) {
     let (mut ball, ball_transform) = ball_query.single_mut();
-    let ball_size = Vec2::new(10., 10.);
+    let ball_size = Vec2::new(20., 20.);
     let powerupsize = Vec2::new(50., 50.);
 
     for (entity, mut powerup, powerupTransform) in &powerUpQuery {
