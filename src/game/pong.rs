@@ -42,6 +42,7 @@ pub struct Collider;
 pub struct Player {
     score: usize,
     side: Side,
+    speed: f32
 }
 
 #[derive(Resource)]
@@ -77,7 +78,7 @@ const PADDLE_HEIGHT: f32 = 100.;
 
 pub fn spawn_game_items(mut commands: Commands, assets: Res<AssetServer>) {
     commands.spawn(PowerUpTimer {
-        timer: Timer::new(time::Duration::from_secs(20), TimerMode::Repeating),
+        timer: Timer::new(time::Duration::from_secs(5), TimerMode::Repeating),
     });
 }
 
@@ -99,6 +100,7 @@ pub fn spawn_paddels(mut commands: Commands) {
         Player {
             score: 0,
             side: Side::Left,
+            speed: 1.,
         },
         Collider,
     ));
@@ -120,6 +122,7 @@ pub fn spawn_paddels(mut commands: Commands) {
         Player {
             score: 0,
             side: Side::Right,
+            speed: 1.,
         },
         Collider,
     ));
@@ -221,7 +224,7 @@ pub fn player_movment(
                 direction_y -= 500.;
             }
         }
-        let new_translation = tranform.translation.y + direction_y * time_delta;
+        let new_translation = tranform.translation.y + direction_y * player.speed * time_delta;
         let clamp = SCREEN_HEIGHT / 2. - PADDEL_WIDTH / 2.;
         tranform.translation.y = new_translation.clamp(-clamp - 30., clamp - 30.);
     }
@@ -285,10 +288,12 @@ pub fn collision_detection(
 
         if reflect_x {
             ball_velocity.0.x = -ball_velocity.0.x;
+            ball.speed += 100.;
         }
 
         if reflect_y {
             ball_velocity.0.y = -ball_velocity.0.y;
+            ball.speed += 100.;
         }
         }
  }
@@ -327,17 +332,22 @@ pub fn spawn_powerups(
     mut powerup_timer: Query<&mut PowerUpTimer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut player_query: Query<(&mut Player, &Transform)>
 ) {
     let mut rng = rand::thread_rng();
     let mut timer = powerup_timer.single_mut();
     timer.timer.tick(time.delta());
     if timer.timer.just_finished() {
-        let num = rng.gen_range(0..1);
-        let poweruptype = match num {
-            0 => PowerUpType::Speedup,
-            1 => PowerUpType::Slowdown,
-            _ => PowerUpType::Speedup,
+        for (mut player, transform) in player_query.iter_mut() {
+            player.speed = 1.;
+        }
+        let num = rng.gen_range(0..100);
+        let poweruptype = if num >= 50 {
+            PowerUpType::Speedup
+        } else {
+            PowerUpType::Slowdown
         };
+
         let x = rng.gen_range(-300..300) as f32;
         let y = rng.gen_range(-300..300) as f32;
 
@@ -364,6 +374,7 @@ pub fn powerup_collisions(
     mut commands: Commands,
     mut ball_query: Query<(&mut Ball, &Transform)>,
     mut powerUpQuery: Query<(Entity, &mut PowerUp, &Transform)>,
+    mut player_query: Query<(&mut Player, &Transform)>,
 ) {
     let (mut ball, ball_transform) = ball_query.single_mut();
     let ball_size = Vec2::new(20., 20.);
@@ -376,14 +387,18 @@ pub fn powerup_collisions(
             powerupTransform.translation,
             powerupsize,
         );
-        if let Some(collision) = collide {
-            let powerup = match powerup.powerup_type {
+        if let Some(_collision) = collide {
+            let _powerup = match powerup.powerup_type {
                 PowerUpType::Speedup => {
                     ball.speed += 100.0;
                     commands.entity(entity).despawn_recursive();
                 }
                 PowerUpType::Slowdown => {
                     ball.speed -= 100.0;
+                    for (mut player, _transform) in player_query.iter_mut() {
+                        let speed = player.speed;
+                        player.speed = 0.5;
+                    }
                     commands.entity(entity).despawn_recursive();
                 }
             };
