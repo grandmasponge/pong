@@ -22,12 +22,15 @@ fn main() {
         }))
         .add_state::<AppState>()
         .add_systems(Startup, setup)
-        .add_systems(Startup, game::pong::spawn_paddels)
-        .add_systems(Startup, game::pong::spawn_ball)
-        .add_systems(Startup, game::pong::spawn_scoreboard)
-        .add_systems(Startup, game::pong::spawn_recources)
-        .add_systems(Startup, game::pong::spawn_game_items)
-        .add_systems(Update, (game::pong::collision_detection, game::pong::update_ball_direction,))
+        .add_systems(OnEnter(AppState::Menu), game::menu::menu)
+        .add_systems(Update, game::menu::menu_action)
+        .add_systems(OnExit(AppState::Menu), game::menu::despawn_screen)
+        .add_systems(OnEnter(AppState::InGame), (game::pong::spawn_paddels).run_if(in_state(AppState::InGame)))
+        .add_systems(OnEnter(AppState::InGame), (game::pong::spawn_ball).run_if(in_state(AppState::InGame)))
+        .add_systems(OnEnter(AppState::InGame), (game::pong::spawn_scoreboard).run_if(in_state(AppState::InGame)))
+        .add_systems(OnEnter(AppState::InGame), (game::pong::spawn_recources).run_if(in_state(AppState::InGame)))
+        .add_systems(OnEnter(AppState::InGame), game::pong::spawn_game_items.run_if(in_state(AppState::InGame)))
+        .add_systems(Update, (game::pong::collision_detection, game::pong::update_ball_direction,).run_if(in_state(AppState::InGame)))
         .add_systems(
             Update,
             (
@@ -76,8 +79,8 @@ pub fn player_movment() {}
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum AppState {
-    Menu,
     #[default]
+    Menu,
     InGame,
 
     Paused,
